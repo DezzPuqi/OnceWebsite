@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Satu Kali Akses</title>
+  <style>
+    body{font-family:system-ui,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f6f8fb}
+    .card{background:#fff;padding:28px;border-radius:12px;box-shadow:0 6px 24px rgba(20,30,60,0.08);max-width:520px;text-align:center}
+    .ok{color:green}
+    .bad{color:#b02a2a}
+    button{margin-top:16px;padding:10px 18px;border-radius:8px;border:0;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card" id="app">
+    <h2>Memeriksa akses...</h2>
+    <p id="msg">Tunggu sebentar.</p>
+    <div id="content" style="display:none">
+      <h3 class="ok">🎉 Selamat — ini akses pertama kamu!</h3>
+      <p>Ini konten yang hanya boleh dilihat sekali per browser/device.</p>
+      <button id="proceed">Lihat konten penuh</button>
+    </div>
+
+    <div id="expired" style="display:none">
+      <h3 class="bad">❌ Akses sudah digunakan</h3>
+      <p>Kamu sudah pernah membuka halaman ini dari browser ini.</p>
+    </div>
+  </div>
+
+<script>
+(async function(){
+  const msg = id => document.getElementById('msg').textContent = id;
+
+  // cepat cek localStorage (client-side)
+  if (localStorage.getItem('visited_one_time')) {
+    // langsung tampil expired (tidak perlu network)
+    document.getElementById('expired').style.display = 'block';
+    document.getElementById('msg').textContent = 'Akses ditolak — sudah pernah dibuka di browser ini.';
+    return;
+  }
+
+  // kalau belum ada di localStorage, panggil API untuk set cookie dan validasi server-side
+  try {
+    msg('Menghubungi server untuk menandai akses...');
+
+    const res = await fetch('/api/access');
+    const data = await res.json();
+
+    if (data.allowed) {
+      // tandai di localStorage supaya next visit cepat ditolak tanpa network
+      localStorage.setItem('visited_one_time', '1');
+
+      document.getElementById('content').style.display = 'block';
+      document.getElementById('msg').textContent = 'Ini adalah kunjungan pertamamu.';
+      document.getElementById('proceed').onclick = () => {
+        alert('Konten penuh (contoh). Kalau mau, replace ini dengan konten asli.');
+      };
+    } else {
+      document.getElementById('expired').style.display = 'block';
+      document.getElementById('msg').textContent = data.message || 'Halaman sudah kadaluarsa.';
+    }
+  } catch (err) {
+    console.error(err);
+    msg('Gagal koneksi ke server. Coba lagi.');
+  }
+})();
+</script>
+</body>
+      </html>
