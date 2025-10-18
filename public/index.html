@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Akses Satu Kali</title>
+  <title>Akses Sekali Saja</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{
@@ -21,12 +21,12 @@
       background:white;
       border-radius:20px;
       box-shadow:0 8px 28px rgba(0,0,0,0.08);
-      max-width:380px;
+      max-width:420px;
       width:90%;
       animation:fadeIn 0.7s ease;
     }
     @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-    h1{font-size:1.5rem;margin-bottom:12px}
+    h1{font-size:1.6rem;margin-bottom:12px}
     p{color:#444;margin-bottom:20px}
     .bubble{
       display:inline-block;
@@ -38,21 +38,53 @@
       font-size:0.9rem;
       color:#222;
       box-shadow:inset 0 1px 3px rgba(0,0,0,0.05);
-      transition:all 0.3s ease;
+      transition:transform 0.3s ease;
     }
     .bubble:hover{transform:scale(1.05);}
+    button{
+      background:#0066ff;
+      color:#fff;
+      border:none;
+      padding:10px 22px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+      transition:all 0.2s ease;
+    }
+    button:hover{background:#0052cc;transform:scale(1.05);}
     .hidden{display:none}
-    .dim{
-      filter:grayscale(1) brightness(0.9);
-      background:white !important;
-      color:#aaa !important;
+
+    /* Mode expired */
+    body.dim{
+      background:#f8f8f8;
+      color:#aaa;
     }
-    .footer{
-      position:absolute;
-      bottom:16px;
-      font-size:0.8rem;
-      color:#666;
+    body.dim .container{
+      background:#fff;
+      color:#aaa;
+      filter:grayscale(1) brightness(0.8);
+      animation:glitch 0.2s infinite;
     }
+    @keyframes glitch{
+      0%{transform:translate(0)}
+      20%{transform:translate(-1px,1px)}
+      40%{transform:translate(1px,-1px)}
+      60%{transform:translate(-2px,0)}
+      80%{transform:translate(2px,1px)}
+      100%{transform:translate(0)}
+    }
+    .noise{
+      position:fixed;
+      top:0;left:0;width:100%;height:100%;
+      pointer-events:none;
+      background:repeating-radial-gradient(circle at random,rgba(255,255,255,0.05),transparent 2px);
+      animation:noiseMove 0.4s steps(4) infinite;
+    }
+    @keyframes noiseMove{
+      from{background-position:0 0;}
+      to{background-position:100% 100%;}
+    }
+    .footer{position:absolute;bottom:16px;font-size:0.8rem;color:#666;}
   </style>
 </head>
 <body>
@@ -60,15 +92,18 @@
     <h1>🎉 Selamat Datang!</h1>
     <p>Website ini hanya bisa kamu akses <b>1 kali saja</b>.<br>Data perangkatmu:</p>
     <div id="bubbles"></div>
+    <br>
+    <button id="goBtn">Lanjutkan ➜</button>
   </div>
 
   <div class="container hidden" id="expired">
-    <h1>⚠️ Akses Ditolak</h1>
-    <p>Web ini sudah kamu buka sebelumnya.<br>Halaman ini kini tidak berguna 😔</p>
+    <h1>⚠️ Akses Sudah Digunakan</h1>
+    <p>Halaman ini tidak bisa lagi digunakan.</p>
     <div id="bubbles2"></div>
   </div>
 
   <div class="footer">© 2025</div>
+  <div class="noise hidden" id="noise"></div>
 
 <script>
 async function getIP(){
@@ -86,19 +121,10 @@ async function getBattery(){
   }catch{return "Tidak didukung";}
 }
 
-async function getBrightness(){
+function getBrightness(){
   try{
-    if ('ambientLightSensor' in window) {
-      const sensor = new AmbientLightSensor();
-      sensor.start();
-      return Math.round(sensor.illuminance)+' lux';
-    }
-    // brightness tidak bisa didapat langsung di browser modern
-    // jadi kita ambil dari screen brightness approximate (hack)
-    if ('visualViewport' in window) {
-      return Math.round((window.visualViewport.scale||1)*100)+'%';
-    }
-    return "Tidak tersedia";
+    const bright=Math.round(window.visualViewport?.scale*100||100);
+    return bright+'%';
   }catch{return "Tidak tersedia";}
 }
 
@@ -107,29 +133,32 @@ function getTime(){
   return now.toLocaleTimeString('id-ID',{hour12:false});
 }
 
-function bubble(id,text){
+function bubble(label,text){
   const el=document.createElement('div');
   el.className='bubble';
-  el.textContent=id+": "+text;
+  el.textContent=label+": "+text;
   return el;
 }
 
 (async()=>{
   const bubbles=document.getElementById('bubbles');
   const bubbles2=document.getElementById('bubbles2');
+  const noise=document.getElementById('noise');
 
   const ip=await getIP();
   const bat=await getBattery();
-  const bright=await getBrightness();
+  const bright=getBrightness();
   const time=getTime();
 
-  const el1=[bubble("IP",ip),bubble("Batre",bat),bubble("Kecerahan",bright),bubble("Jam",time)];
-  el1.forEach(e=>bubbles.appendChild(e));
+  const items=[bubble("IP",ip),bubble("Batre",bat),bubble("Kecerahan",bright),bubble("Jam",time)];
+  items.forEach(e=>bubbles.appendChild(e));
 
-  const el2=[bubble("IP",ip),bubble("Batre",bat),bubble("Jam",time)];
-  el2.forEach(e=>bubbles2.appendChild(e));
+  const items2=[bubble("IP",ip),bubble("Batre",bat),bubble("Jam",time)];
+  items2.forEach(e=>bubbles2.appendChild(e));
 
-  // check access dari API
+  // tombol ke web lain
+  document.getElementById("goBtn").onclick=()=>window.location.href="https://example.com";
+
   try{
     const res=await fetch('/api/access');
     const data=await res.json();
@@ -140,6 +169,7 @@ function bubble(id,text){
       document.getElementById('first').classList.remove('hidden');
     }else{
       document.body.classList.add('dim');
+      noise.classList.remove('hidden');
       document.getElementById('first').classList.add('hidden');
       document.getElementById('expired').classList.remove('hidden');
     }
