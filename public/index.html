@@ -88,7 +88,12 @@
   </style>
 </head>
 <body>
-  <div class="container" id="first">
+  <div class="container" id="loading">
+    <h1>🔍 Memeriksa akses...</h1>
+    <p>Tunggu sebentar, sedang mengecek status kamu.</p>
+  </div>
+
+  <div class="container hidden" id="first">
     <h1>🎉 Selamat Datang!</h1>
     <p>Website ini hanya bisa kamu akses <b>1 kali saja</b>.<br>Data perangkatmu:</p>
     <div id="bubbles"></div>
@@ -113,26 +118,22 @@ async function getIP(){
     return j.ip;
   }catch{return "Tidak diketahui";}
 }
-
 async function getBattery(){
   try{
     const b=await navigator.getBattery();
     return Math.round(b.level*100)+'%';
   }catch{return "Tidak didukung";}
 }
-
 function getBrightness(){
   try{
     const bright=Math.round(window.visualViewport?.scale*100||100);
     return bright+'%';
   }catch{return "Tidak tersedia";}
 }
-
 function getTime(){
   const now=new Date();
   return now.toLocaleTimeString('id-ID',{hour12:false});
 }
-
 function bubble(label,text){
   const el=document.createElement('div');
   el.className='bubble';
@@ -144,6 +145,9 @@ function bubble(label,text){
   const bubbles=document.getElementById('bubbles');
   const bubbles2=document.getElementById('bubbles2');
   const noise=document.getElementById('noise');
+  const first=document.getElementById('first');
+  const expired=document.getElementById('expired');
+  const loading=document.getElementById('loading');
 
   const ip=await getIP();
   const bat=await getBattery();
@@ -152,29 +156,32 @@ function bubble(label,text){
 
   const items=[bubble("IP",ip),bubble("Batre",bat),bubble("Kecerahan",bright),bubble("Jam",time)];
   items.forEach(e=>bubbles.appendChild(e));
-
   const items2=[bubble("IP",ip),bubble("Batre",bat),bubble("Jam",time)];
   items2.forEach(e=>bubbles2.appendChild(e));
 
-  // tombol ke web lain
   document.getElementById("goBtn").onclick=()=>window.location.href="https://example.com";
+
+  // Cegah tampil apapun sebelum verifikasi
+  first.classList.add('hidden');
+  expired.classList.add('hidden');
+  loading.classList.remove('hidden');
 
   try{
     const res=await fetch('/api/access');
     const data=await res.json();
 
+    loading.classList.add('hidden'); // setelah cek, baru tampil salah satu
+
     if (data.allowed){
       localStorage.setItem('visited_one_time','1');
-      document.getElementById('expired').classList.add('hidden');
-      document.getElementById('first').classList.remove('hidden');
+      first.classList.remove('hidden');
     }else{
       document.body.classList.add('dim');
       noise.classList.remove('hidden');
-      document.getElementById('first').classList.add('hidden');
-      document.getElementById('expired').classList.remove('hidden');
+      expired.classList.remove('hidden');
     }
   }catch(e){
-    document.body.innerHTML='<p style="text-align:center;">Gagal memuat data.</p>';
+    loading.innerHTML="<h1>❌ Error</h1><p>Gagal memeriksa akses.</p>";
   }
 })();
 </script>
